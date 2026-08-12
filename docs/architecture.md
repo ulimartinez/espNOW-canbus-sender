@@ -15,7 +15,7 @@ Vehicle CAN network (500 kbit/s)
       |
 CANH / CANL
       |
-Waveshare SN65HVD230 transceiver
+Adafruit CAN PAL (TJA1051/T3) transceiver
       |
 ESP32 TWAI controller (listen-only)          <-- CanReceiver.h/.cpp
       |

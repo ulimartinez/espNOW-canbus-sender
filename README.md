@@ -13,8 +13,8 @@ Reads vehicle CAN traffic, decodes an Ansix oil-pressure CAN module plus several
 ## 3. Hardware list
 
 - ESP-WROOM-32 dev board (original ESP32, 3.3V logic, built-in TWAI controller, Wi-Fi for ESP-NOW)
-- Waveshare SN65HVD230 CAN transceiver board (3.3V only)
-- Ansix 2022+ BRZ/GR86 Oil Pressure Sensor CANbus Kit (vehicle-side, broadcasts on the CAN bus this firmware taps)
+- Adafruit CAN PAL (TJA1051/T3 transceiver, 3-5V capable, switchable termination resistor)
+- Ansix 2022+ BRZ/GR86 Oil Pressure Sensor CANbus Kit (vehicle-side, broadcasts on the CAN bus this firmware taps, via the Ansix/ASC connector -- see [`docs/wiring.md`](docs/wiring.md))
 - Automotive 12V-to-5V converter or USB power source for the ESP32 (never bare vehicle 12V)
 - Elecrow DHE38128D display, running the separate `espNOW-car-gauge` firmware (not part of this repo)
 
@@ -22,7 +22,7 @@ Reads vehicle CAN traffic, decodes an Ansix oil-pressure CAN module plus several
 
 ```text
 Ansix oil-pressure sensor -> Ansix CAN module -> Vehicle CAN network -> CANH/CANL
-   -> Waveshare SN65HVD230 -> ESP32 TWAI (listen-only) -> signal decoders
+   -> Adafruit CAN PAL -> ESP32 TWAI (listen-only) -> signal decoders
    -> VehicleData -> warning logic -> GaugePacket -> ESP-NOW -> Elecrow DHE38128D display
 ```
 
@@ -41,26 +41,29 @@ The sibling repository `../espNOW-car-gauge` is the **display firmware** and is 
 See [`docs/wiring.md`](docs/wiring.md) for the full pinout, and read it in full before connecting anything to a vehicle.
 
 ```text
-ESP-WROOM-32             Waveshare SN65HVD230
-3V3  ------------------> VCC / 3.3V
-GND  ------------------> GND
-GPIO21 ----------------> TXD
-GPIO22 <---------------- RXD
-                          CANH ---> Vehicle CAN High
-                          CANL ---> Vehicle CAN Low
+ESP32          CAN PAL              Ansix connector
+3V3  --------> VCC
+GND  --------> GND
+GPIO21 ------> TX
+GPIO22 ------> RX
+                CANH ------------> Pin 4
+                CANL ------------> Pin 12
+                GND  ------------> Pin 1 (pin 9 optional)
 ```
+
+The Ansix CAN connector also exposes +12V on pin 3 (vehicle-install power feed only, through a buck converter -- see below) and IGN on pin 11 (future enhancement, not wired yet). Full pinout and rationale: [`docs/wiring.md`](docs/wiring.md).
 
 ## 8. 3.3V warning
 
-The Waveshare SN65HVD230 board **must** be powered from 3.3V. It does not tolerate 5V.
+The Adafruit CAN PAL **must** be powered from the same logic voltage as the ESP32 (3.3V here), even though the board itself supports 3-5V.
 
 ## 9. Automotive power warning
 
-**Do not power the ESP32 directly from vehicle 12V.** Use a proper automotive 12V-to-5V converter or USB power source. All grounds must be common.
+**Do not power the ESP32 directly from vehicle 12V. Do not power the CAN PAL directly from vehicle 12V.** For a vehicle install, use a proper automotive 12V-to-5V buck converter fed from the Ansix connector's +12V pin (pin 3) into the ESP32's VIN/5V pin; for bench testing, USB power is sufficient (the ESP32's onboard 3.3V regulator powers the CAN PAL). All grounds must be common.
 
 ## 10. CAN termination warning
 
-**Do not add a 120-ohm termination resistor.** The vehicle CAN network is already terminated at both ends. This ESP32 is a passive monitoring tap, not a new bus endpoint. Before connecting the Waveshare board, measure CANH-CANL resistance, check for and disable any onboard termination resistor on the transceiver board, and record what you found in [`docs/wiring.md`](docs/wiring.md).
+**Set the CAN PAL's termination switch to OFF.** The vehicle CAN network is already terminated at both ends. This ESP32 is a passive monitoring tap, not a new bus endpoint -- adding another termination resistor would drop bus impedance below spec. Confirm the switch position before connecting to the vehicle, and record it in [`docs/wiring.md`](docs/wiring.md).
 
 ## 11. Listen-only safety behavior
 
