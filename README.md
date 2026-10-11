@@ -198,14 +198,14 @@ Two phases, in order -- full detail in [`docs/validation-plan.md`](docs/validati
 ## 27. Current limitations
 
 - Lateral acceleration and brake pressure formulas are implemented exactly as supplied in the RaceChrono profile, but their real-world engineering units and signs have not been independently validated against the vehicle (see `docs/can/signal-map.md`). Fields are named `...Scaled` rather than claiming a unit.
-- `PressureWarningLogic`'s RPM/PSI threshold table is a development placeholder, not a validated engine-protection specification, and is independent of the Ansix module's own factory warning behavior.
+- `PressureWarningLogic`'s RPM/PSI threshold table is derived from two real track logs on this car (see `docs/can/pressure-threshold-derivation.md`), not a validated engine-protection specification, and is independent of the Ansix module's own factory warning behavior. It's tuned for this specific car/oil pan/sensor and should be re-derived, not assumed, if any of those change.
 - Coolant temperature, accelerator position, steering angle, brake pressure, and lateral acceleration are decoded and available internally but not yet transmitted -- the deployed `GaugePacket` (protocol v1) only carries oil pressure, RPM, and oil temperature. See [`docs/packet-protocol.md`](docs/packet-protocol.md) for what a protocol bump would require.
-- This firmware has not yet been run against real vehicle CAN traffic (see `docs/can/capture-notes.md` -- no capture sessions logged yet). All signal decoders are covered by host-side unit tests (`tests/`) exercising the formulas against the brief's worked examples, but that validates arithmetic, not real bus behavior.
+- Real-vehicle CAN validation is in progress -- see `docs/can/capture-notes.md` for logged sessions. All signal decoders are also covered by host-side unit tests (`tests/`) exercising the formulas against the brief's worked examples, which validates arithmetic independent of real bus behavior.
 - No SD card / persistent logging in this version; `FrameHistory` is RAM-only and resets on reboot.
 
 ## 28. Warning-threshold disclaimer
 
-`DEVELOPMENT_THRESHOLDS` in `PressureWarningLogic.h` are placeholders "tuned for reasonable on the bench," not a validated safety specification for any particular engine. The Ansix module's own factory oil-pressure warning behavior operates completely independently of this firmware and is the authoritative safety warning. `FLAG_LOW_PRESSURE_WARNING` in the transmitted packet is a supplemental display cue only.
+`TRACK_LOG_THRESHOLDS` in `PressureWarningLogic.h` are derived from real track-session data on this car (see [`docs/can/pressure-threshold-derivation.md`](docs/can/pressure-threshold-derivation.md) for the methodology), not a validated safety specification for any particular engine. The Ansix module's own factory oil-pressure warning behavior operates completely independently of this firmware and is the authoritative safety warning. `FLAG_LOW_PRESSURE_WARNING` in the transmitted packet is a supplemental display cue only, and escalating to it is debounced (`PRESSURE_WARNING_DEBOUNCE_MS`) so brief normal-cornering pressure dips don't flicker it -- only a sustained drop surfaces the warning.
 
 ## 29. Future protocol expansion
 

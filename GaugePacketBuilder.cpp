@@ -16,10 +16,10 @@ uint16_t GaugePacketBuilder::buildFlags(const VehicleData &data, PressureStatus 
     return flags;
 }
 
-GaugePacket GaugePacketBuilder::build(const VehicleData &data, uint32_t sequence, uint32_t senderUptimeMs) const {
-    PressureStatus pressureStatus = evaluatePressureStatus(data.sensorError, data.oilPressureValid,
-                                                            data.oilPressurePsi, data.rpmValid, data.rpm,
-                                                            data.engineRunning);
+GaugePacket GaugePacketBuilder::build(const VehicleData &data, uint32_t sequence, uint32_t senderUptimeMs) {
+    PressureStatus pressureStatus = pressureWarningDebouncer_.evaluate(data.sensorError, data.oilPressureValid,
+                                                                        data.oilPressurePsi, data.rpmValid, data.rpm,
+                                                                        data.engineRunning, senderUptimeMs);
 
     GaugePacket packet{};
     packet.sequence = sequence;

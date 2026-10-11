@@ -50,3 +50,14 @@ constexpr uint32_t ENGINE_STATE_DEBOUNCE_MS = 500;
 // valid. Marked provisional: pressure-based detection is not authoritative.
 constexpr float PROVISIONAL_ENGINE_RUNNING_PSI = 3.0f;
 constexpr uint32_t PROVISIONAL_ENGINE_RUNNING_DEBOUNCE_MS = 500;
+
+// Minimum time a Caution/Critical pressure condition must persist before
+// PressureWarningDebouncer escalates to it. Derived from real track logs
+// (see docs/can/pressure-threshold-derivation.md): normal hard-cornering
+// transients on this car are consistently under ~300ms, while the
+// starvation events that motivated the oil pan upgrade lasted 310-460ms.
+// 200ms lets a driver stay on-throttle through brief cornering blips while
+// still escalating in time to react to a genuinely sustained drop.
+// Recovery to a less-severe status is intentionally NOT debounced -- the
+// warning should clear the instant pressure is back to a safe level.
+constexpr uint32_t PRESSURE_WARNING_DEBOUNCE_MS = 200;

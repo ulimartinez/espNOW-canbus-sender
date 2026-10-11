@@ -58,7 +58,7 @@ Arduino's classic build system (confirmed empirically with `arduino-cli` 1.5.1 /
 | `SignalDecoders.h/.cpp` | Pure per-signal decode formulas (host-testable) |
 | `VehicleData.h` | Central decoded-signal state struct |
 | `VehicleCanDecoder.h/.cpp` | Frame dispatch, plausibility, freshness, engine-running hysteresis (host-testable) |
-| `PressureWarningLogic.h/.cpp` | RPM-interpolated supplemental warning thresholds (host-testable) |
+| `PressureWarningLogic.h/.cpp` | RPM-interpolated, track-log-derived, debounced supplemental warning thresholds (host-testable) |
 | `GaugePacket.h/.cpp` | Wire protocol, copied verbatim from the display repo |
 | `GaugePacketBuilder.h/.cpp` | `VehicleData` -> `GaugePacket`, the only unit-conversion boundary (host-testable) |
 | `CanReceiver.h/.cpp` | TWAI init/read/alerts, listen-only only |

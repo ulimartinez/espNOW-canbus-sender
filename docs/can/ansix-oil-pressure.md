@@ -26,16 +26,8 @@ Configurable in [`SignalConfig.h`](../../SignalConfig.h). A frame that decodes s
 
 ## Supplemental warning thresholds -- explicitly not a validated spec
 
-The Ansix module already runs the vehicle's own factory oil-pressure warning behavior, independently of anything in this firmware. `PressureWarningLogic.h`'s `DEVELOPMENT_THRESHOLDS` table is a **placeholder** RPM-interpolated caution/critical curve for a supplemental display cue only:
+The Ansix module already runs the vehicle's own factory oil-pressure warning behavior, independently of anything in this firmware. `PressureWarningLogic.h`'s `TRACK_LOG_THRESHOLDS` table is an RPM-interpolated caution/critical curve for a supplemental display cue only -- **not** a substitute for the Ansix module's own warning, and not a manufacturer engine-protection specification.
 
-```cpp
-constexpr PressureThresholdPoint DEVELOPMENT_THRESHOLDS[] = {
-    {  800, 10.0f,  6.0f },
-    { 2000, 25.0f, 18.0f },
-    { 4000, 40.0f, 30.0f },
-    { 6000, 50.0f, 38.0f },
-    { 7500, 55.0f, 42.0f },
-};
-```
+Unlike the original bench-guess placeholders, this table is derived from two real track logs on this car (before and after an oil pan upgrade) -- see [pressure-threshold-derivation.md](pressure-threshold-derivation.md) for the full methodology, data, and reasoning. Escalating to Caution/Critical is also debounced (`PRESSURE_WARNING_DEBOUNCE_MS` in [`SignalConfig.h`](../../SignalConfig.h)) via `PressureWarningDebouncer`, since the logs show even a healthy car has brief (<0.5s) pressure dips during normal hard cornering -- only a *sustained* drop should surface the warning. Recovery to a less-severe status is never debounced.
 
-These numbers are tuned for "reasonable on the bench," not derived from or verified against any manufacturer engine-protection specification. Do not treat `FLAG_LOW_PRESSURE_WARNING` as a substitute for the factory warning light, and do not raise a critical warning purely from an engine-off zero-pressure reading (`evaluatePressureStatus()` explicitly guards this).
+Do not raise a critical warning purely from an engine-off zero-pressure reading (`evaluatePressureStatus()` explicitly guards this), and re-derive this table (per the method in pressure-threshold-derivation.md) rather than hand-tuning it if the car, oil pan, or sensor changes.

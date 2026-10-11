@@ -1,4 +1,5 @@
 #include "../../GaugePacketBuilder.h"
+#include "../../SignalConfig.h"
 #include "../test_framework.h"
 
 namespace {
@@ -31,16 +32,42 @@ void testValidNormalPacket() {
 }
 
 void testCriticalPressureSetsWarningFlag() {
+    // GaugePacketBuilder debounces escalation (see
+    // docs/can/pressure-threshold-derivation.md) -- the condition must
+    // persist across calls, tracked by senderUptimeMs, before the flag
+    // appears.
     VehicleData data;
-    data.oilPressurePsi = 20.0f;  // well below critical at this RPM
+    data.oilPressurePsi = 15.0f;  // well below critical (18) at this RPM
     data.oilPressureValid = true;
     data.rpm = 6500;
     data.rpmValid = true;
     data.engineRunning = true;
 
     GaugePacketBuilder builder;
-    GaugePacket packet = builder.build(data, 1, 0);
-    CHECK((packet.flags & FLAG_LOW_PRESSURE_WARNING) != 0);
+    GaugePacket first = builder.build(data, 1, 0);
+    CHECK((first.flags & FLAG_LOW_PRESSURE_WARNING) == 0);  // not yet -- just started
+
+    GaugePacket second = builder.build(data, 2, PRESSURE_WARNING_DEBOUNCE_MS + 1);
+    CHECK((second.flags & FLAG_LOW_PRESSURE_WARNING) != 0);  // persisted long enough
+}
+
+void testBriefCriticalDipDoesNotSetWarningFlag() {
+    // The whole point of the debounce: a dip that recovers before
+    // PRESSURE_WARNING_DEBOUNCE_MS elapses (as real track-log cornering
+    // transients do) must never surface the warning flag on the wire.
+    VehicleData data;
+    data.oilPressurePsi = 15.0f;
+    data.oilPressureValid = true;
+    data.rpm = 6500;
+    data.rpmValid = true;
+    data.engineRunning = true;
+
+    GaugePacketBuilder builder;
+    builder.build(data, 1, 0);
+
+    data.oilPressurePsi = 60.0f;  // recovers well before the debounce window elapses
+    GaugePacket recovered = builder.build(data, 2, PRESSURE_WARNING_DEBOUNCE_MS / 2);
+    CHECK((recovered.flags & FLAG_LOW_PRESSURE_WARNING) == 0);
 }
 
 void testEngineOffZeroPressureNeverWarns() {
@@ -86,6 +113,7 @@ void testInvalidSignalsProduceZeroedButWellFormedPacket() {
 int main() {
     testValidNormalPacket();
     testCriticalPressureSetsWarningFlag();
+    testBriefCriticalDipDoesNotSetWarningFlag();
     testEngineOffZeroPressureNeverWarns();
     testSensorErrorNeverTransmitsFabricatedPressureAsValid();
     testInvalidSignalsProduceZeroedButWellFormedPacket();
