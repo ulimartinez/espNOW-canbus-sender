@@ -36,6 +36,43 @@ bool gaugePacketIsWellFormed(const GaugePacket &packet, size_t receivedLen) {
 
     if (!isfinite(packet.oilPressurePsi)) return false;
     if (!isfinite(packet.oilTemperatureF)) return false;
+    if (!isfinite(packet.coolantTemperatureF)) return false;
+    if (!isfinite(packet.vehicleSpeedMph)) return false;
+    if (!isfinite(packet.lateralAccelerationG)) return false;
 
     return true;
+}
+
+bool gaugePacketV1IsWellFormed(const GaugePacketV1 &packet, size_t receivedLen) {
+    if (receivedLen != sizeof(GaugePacketV1)) return false;
+    if (packet.magic != GAUGE_PACKET_MAGIC) return false;
+    if (packet.protocolVersion != GAUGE_PROTOCOL_VERSION_V1) return false;
+    if (packet.packetSize != sizeof(GaugePacketV1)) return false;
+
+    uint16_t expected = gaugePacketCrc16(
+        reinterpret_cast<const uint8_t *>(&packet),
+        offsetof(GaugePacketV1, checksum));
+    if (packet.checksum != expected) return false;
+
+    if (!isfinite(packet.oilPressurePsi)) return false;
+    if (!isfinite(packet.oilTemperatureF)) return false;
+
+    return true;
+}
+
+GaugePacket gaugePacketFromV1(const GaugePacketV1 &v1) {
+    GaugePacket p;
+    memset(&p, 0, sizeof(p));
+    p.magic = v1.magic;
+    p.protocolVersion = v1.protocolVersion;
+    p.packetSize = v1.packetSize;
+    p.sequence = v1.sequence;
+    p.senderUptimeMs = v1.senderUptimeMs;
+    p.oilPressurePsi = v1.oilPressurePsi;
+    p.oilTemperatureF = v1.oilTemperatureF;
+    p.rpm = v1.rpm;
+    p.flags = v1.flags & (FLAG_PRESSURE_VALID | FLAG_RPM_VALID | FLAG_OIL_TEMP_VALID | FLAG_LOW_PRESSURE_WARNING |
+                          FLAG_ENGINE_RUNNING | FLAG_SENSOR_ERROR);
+    p.checksum = v1.checksum;
+    return p;
 }

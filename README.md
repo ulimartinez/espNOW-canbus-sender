@@ -146,7 +146,7 @@ With this on, TWAI is never initialized (no CAN GPIOs touched, no transceiver as
 | Engine oil temperature | `0x345` | `data[3] - 40` °C |
 | Coolant temperature | `0x345` | `data[4] - 40` °C |
 | Steering angle | `0x138` | signed 16-bit LE from `data[2:3]`, `* -0.1` deg |
-| Lateral acceleration | `0x13B` | signed 8-bit `data[6]`, `* 0.2` (unit not independently validated) |
+| Lateral acceleration | `0x13B` | signed 8-bit `data[6]`, `* 0.2` m/s² (validated against track logs; sign convention unverified) |
 | Brake pressure | `0x139` | `data[5] * 128` (unit not independently validated) |
 
 Full detail, confidence levels, and the original RaceChrono equations: [`docs/can/signal-map.md`](docs/can/signal-map.md), [`docs/can/racechrono-profile.md`](docs/can/racechrono-profile.md), [`docs/can/ansix-oil-pressure.md`](docs/can/ansix-oil-pressure.md).
@@ -197,9 +197,10 @@ Two phases, in order -- full detail in [`docs/validation-plan.md`](docs/validati
 
 ## 27. Current limitations
 
-- Lateral acceleration and brake pressure formulas are implemented exactly as supplied in the RaceChrono profile, but their real-world engineering units and signs have not been independently validated against the vehicle (see `docs/can/signal-map.md`). Fields are named `...Scaled` rather than claiming a unit.
+- Brake pressure is implemented exactly as supplied in the RaceChrono profile, but its real-world engineering unit has not been independently validated against the vehicle (see `docs/can/signal-map.md`), so its field is named `...Scaled` rather than claiming a unit. Lateral acceleration *has* been validated (m/s², against four track logs) but its sign convention has not.
+- Vehicle speed is not decoded -- no validated source exists yet (see `docs/can/signal-map.md` for why the commonly-cited `0x139` mapping can't be right and how to validate one). Packet v2 reserves a field for it; the display shows `N/A`.
 - `PressureWarningLogic`'s RPM/PSI threshold table is derived from two real track logs on this car (see `docs/can/pressure-threshold-derivation.md`), not a validated engine-protection specification, and is independent of the Ansix module's own factory warning behavior. It's tuned for this specific car/oil pan/sensor and should be re-derived, not assumed, if any of those change.
-- Coolant temperature, accelerator position, steering angle, brake pressure, and lateral acceleration are decoded and available internally but not yet transmitted -- the deployed `GaugePacket` (protocol v1) only carries oil pressure, RPM, and oil temperature. See [`docs/packet-protocol.md`](docs/packet-protocol.md) for what a protocol bump would require.
+- Accelerator position, steering angle, and brake pressure are decoded and available internally but not transmitted. `GaugePacket` protocol v2 carries oil pressure, oil temperature, RPM, coolant temperature, lateral acceleration (g), and a reserved vehicle-speed field. See [`docs/packet-protocol.md`](docs/packet-protocol.md).
 - Real-vehicle CAN validation is in progress -- see `docs/can/capture-notes.md` for logged sessions. All signal decoders are also covered by host-side unit tests (`tests/`) exercising the formulas against the brief's worked examples, which validates arithmetic independent of real bus behavior.
 - No SD card / persistent logging in this version; `FrameHistory` is RAM-only and resets on reboot.
 
@@ -209,7 +210,7 @@ Two phases, in order -- full detail in [`docs/validation-plan.md`](docs/validati
 
 ## 29. Future protocol expansion
 
-Any future packet change must: increment `GAUGE_PROTOCOL_VERSION`, keep the packet size explicit (`static_assert(sizeof(GaugePacket) == N, ...)`), update `GaugePacket.h` identically in **both** this repo and `../espNOW-car-gauge`, define what the receiver does on a version mismatch, and recompute the CRC consistently. Candidates for a future version: coolant temperature, accelerator position, steering angle, brake pressure, lateral acceleration (once independently unit-validated).
+Any future packet change must: increment `GAUGE_PROTOCOL_VERSION`, keep the packet size explicit (`static_assert(sizeof(GaugePacket) == N, ...)`), update `GaugePacket.h` identically in **both** this repo and `../espNOW-car-gauge`, define what the receiver does on a version mismatch, and recompute the CRC consistently. The display must keep accepting the previous version (see the compatibility table in `docs/packet-protocol.md`). Candidates for a future version: accelerator position, steering angle, brake pressure.
 
 ## 30. Vendor configuration references
 

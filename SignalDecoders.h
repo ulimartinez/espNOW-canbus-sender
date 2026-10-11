@@ -33,6 +33,6 @@ bool decodeCoolantTemperatureC(const CanFrame &frame, float &temperatureC);
 
 bool decodeSteeringAngleDegrees(const CanFrame &frame, float &steeringDegrees);
 
-bool decodeLateralAcceleration(const CanFrame &frame, float &lateralAccelerationScaled);
+bool decodeLateralAcceleration(const CanFrame &frame, float &lateralAccelerationMps2);
 
 bool decodeBrakePressureScaled(const CanFrame &frame, float &brakePressureScaled);

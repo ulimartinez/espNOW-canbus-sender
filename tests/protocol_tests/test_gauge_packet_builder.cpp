@@ -108,6 +108,48 @@ void testInvalidSignalsProduceZeroedButWellFormedPacket() {
     CHECK_EQ(packet.flags, 0u);
 }
 
+void testV2FieldsCarriedWithFlags() {
+    VehicleData data;
+    data.coolantTemperatureC = 90.0f;
+    data.coolantTemperatureValid = true;
+    data.lateralAccelerationMps2 = -9.80665f;  // exactly -1 g
+    data.lateralAccelerationValid = true;
+
+    GaugePacketBuilder builder;
+    GaugePacket packet = builder.build(data, 1, 0);
+
+    CHECK(gaugePacketIsWellFormed(packet, sizeof(GaugePacket)));
+    CHECK_EQ(packet.protocolVersion, 2u);
+    CHECK_NEAR(packet.coolantTemperatureF, 194.0f, 0.001);
+    CHECK_NEAR(packet.lateralAccelerationG, -1.0f, 0.0001);
+    CHECK((packet.flags & FLAG_COOLANT_TEMP_VALID) != 0);
+    CHECK((packet.flags & FLAG_LATERAL_ACCEL_VALID) != 0);
+}
+
+void testInvalidV2FieldsZeroedAndFlagsClear() {
+    VehicleData data;
+    data.coolantTemperatureC = 90.0f;      // stale value left behind...
+    data.lateralAccelerationMps2 = 12.0f;  // ...must never reach the wire
+    GaugePacketBuilder builder;
+    GaugePacket packet = builder.build(data, 1, 0);
+
+    CHECK_NEAR(packet.coolantTemperatureF, 0.0f, 0.001);
+    CHECK_NEAR(packet.lateralAccelerationG, 0.0f, 0.001);
+    CHECK((packet.flags & (FLAG_COOLANT_TEMP_VALID | FLAG_LATERAL_ACCEL_VALID)) == 0);
+}
+
+void testSpeedNeverClaimedValid() {
+    // No speed decoder is validated yet (docs/can/signal-map.md) -- the
+    // display must keep showing N/A, never a fabricated 0 MPH.
+    VehicleData data;
+    data.rpm = 3000;
+    data.rpmValid = true;
+    data.engineRunning = true;
+    GaugePacketBuilder builder;
+    GaugePacket packet = builder.build(data, 1, 0);
+    CHECK((packet.flags & FLAG_SPEED_VALID) == 0);
+}
+
 }  // namespace
 
 int main() {
@@ -117,5 +159,8 @@ int main() {
     testEngineOffZeroPressureNeverWarns();
     testSensorErrorNeverTransmitsFabricatedPressureAsValid();
     testInvalidSignalsProduceZeroedButWellFormedPacket();
+    testV2FieldsCarriedWithFlags();
+    testInvalidV2FieldsZeroedAndFlagsClear();
+    testSpeedNeverClaimedValid();
     TEST_SUMMARY();
 }

@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstring>
 
 #include "../../GaugePacket.h"
@@ -61,6 +62,41 @@ void testNonFinitePayloadRejected() {
     CHECK(!gaugePacketIsWellFormed(packet, sizeof(GaugePacket)));
 }
 
+void testV1PacketStillAcceptedAndWidened() {
+    // A display running this code must keep accepting an un-updated (v1)
+    // sender, with the v2-only fields reading as invalid.
+    GaugePacketV1 v1{};
+    v1.magic = GAUGE_PACKET_MAGIC;
+    v1.protocolVersion = GAUGE_PROTOCOL_VERSION_V1;
+    v1.packetSize = sizeof(GaugePacketV1);
+    v1.sequence = 9;
+    v1.oilPressurePsi = 41.0f;
+    v1.oilTemperatureF = 205.0f;
+    v1.rpm = 2500;
+    v1.flags = FLAG_PRESSURE_VALID | FLAG_RPM_VALID | FLAG_OIL_TEMP_VALID | FLAG_ENGINE_RUNNING;
+    v1.checksum = gaugePacketCrc16(reinterpret_cast<const uint8_t *>(&v1), offsetof(GaugePacketV1, checksum));
+
+    CHECK(gaugePacketV1IsWellFormed(v1, sizeof(GaugePacketV1)));
+    CHECK(!gaugePacketV1IsWellFormed(v1, sizeof(GaugePacket)));
+
+    GaugePacket wide = gaugePacketFromV1(v1);
+    CHECK_EQ(wide.sequence, 9u);
+    CHECK_NEAR(wide.oilPressurePsi, 41.0f, 0.001);
+    CHECK_EQ(wide.rpm, 2500u);
+    CHECK((wide.flags & (FLAG_COOLANT_TEMP_VALID | FLAG_SPEED_VALID | FLAG_LATERAL_ACCEL_VALID)) == 0);
+
+    GaugePacketV1 corrupted = v1;
+    corrupted.rpm = 7000;
+    CHECK(!gaugePacketV1IsWellFormed(corrupted, sizeof(GaugePacketV1)));
+}
+
+void testV2NonFiniteNewFieldsRejected() {
+    GaugePacket packet{};
+    packet.lateralAccelerationG = 0.0f / 0.0f;
+    gaugePacketSign(packet);
+    CHECK(!gaugePacketIsWellFormed(packet, sizeof(GaugePacket)));
+}
+
 }  // namespace
 
 int main() {
@@ -68,5 +104,7 @@ int main() {
     testSignAndValidateRoundTrip();
     testCorruptionDetected();
     testNonFinitePayloadRejected();
+    testV1PacketStillAcceptedAndWidened();
+    testV2NonFiniteNewFieldsRejected();
     TEST_SUMMARY();
 }

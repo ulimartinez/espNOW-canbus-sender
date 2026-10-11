@@ -26,10 +26,21 @@ constexpr float MAX_VALID_TEMPERATURE_C = 180.0f;
 // --- Steering angle (0x138) ---
 constexpr float MAX_ABS_STEERING_DEGREES = 1000.0f;
 
-// --- Lateral acceleration (0x13B) and brake (0x139): units not yet
-// independently validated (see docs/can/signal-map.md). Start generous. ---
-constexpr float MAX_ABS_LATERAL_ACCEL_SCALED = 60.0f;   // raw int8 * 0.2 -> +-25.4 max possible
+// --- Lateral acceleration (0x13B): m/s^2, validated against four track
+// logs (see docs/can/signal-map.md). raw int8 * 0.2 can't exceed +-25.6
+// (~2.6 g), so this limit never rejects a decoded value today -- it only
+// guards against a future decoder change. Isolated spikes (curb strikes
+// read up to ~1.8 g on a car pulling ~1.45 g sustained) are filtered on
+// the display side, where peaks are tracked. ---
+constexpr float MAX_ABS_LATERAL_ACCEL_MPS2 = 60.0f;
+
+// --- Brake (0x139): unit not yet independently validated (see
+// docs/can/signal-map.md). Start generous. ---
 constexpr float MAX_BRAKE_PRESSURE_SCALED = 32640.0f;   // raw uint8 * 128 max possible
+
+// Standard gravity, for converting the m/s^2 lateral-acceleration signal to
+// g at the wire-format boundary (GaugePacketBuilder).
+constexpr float STANDARD_GRAVITY_MPS2 = 9.80665f;
 
 // --- Freshness timeouts (ms since last valid frame for that signal) ---
 constexpr uint32_t FAST_SIGNAL_STALE_MS = 250;

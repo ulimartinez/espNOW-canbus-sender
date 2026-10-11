@@ -13,7 +13,7 @@ struct VehicleData {
     float coolantTemperatureC = 0.0f;
     float acceleratorPercent = 0.0f;
     float steeringAngleDegrees = 0.0f;
-    float lateralAccelerationScaled = 0.0f;  // unit not independently validated
+    float lateralAccelerationMps2 = 0.0f;  // m/s^2 -- validated against track logs, see docs/can/signal-map.md
     float brakePressureScaled = 0.0f;        // unit not independently validated
 
     uint16_t rpm = 0;

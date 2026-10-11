@@ -95,13 +95,13 @@ void VehicleCanDecoder::applySteeringAngle(float degrees, uint32_t nowMs) {
 }
 
 void VehicleCanDecoder::applyLateralAcceleration(float scaled, uint32_t nowMs) {
-    if (scaled < -MAX_ABS_LATERAL_ACCEL_SCALED || scaled > MAX_ABS_LATERAL_ACCEL_SCALED) {
+    if (scaled < -MAX_ABS_LATERAL_ACCEL_MPS2 || scaled > MAX_ABS_LATERAL_ACCEL_MPS2) {
         data_.lateralAccelerationValid = false;
         data_.invalidLateralAccelerationCount++;
         return;
     }
 
-    data_.lateralAccelerationScaled = scaled;
+    data_.lateralAccelerationMps2 = scaled;
     data_.lateralAccelerationValid = true;
     data_.lastLateralAccelerationMs = nowMs;
 }

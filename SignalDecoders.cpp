@@ -73,14 +73,14 @@ bool decodeSteeringAngleDegrees(const CanFrame &frame, float &steeringDegrees) {
     return true;
 }
 
-bool decodeLateralAcceleration(const CanFrame &frame, float &lateralAccelerationScaled) {
+bool decodeLateralAcceleration(const CanFrame &frame, float &lateralAccelerationMps2) {
     if (frame.extd || frame.rtr || frame.identifier != ID_LATERAL || frame.data_length_code < 7) {
         return false;
     }
 
     const int8_t raw = static_cast<int8_t>(frame.data[6]);
 
-    lateralAccelerationScaled = static_cast<float>(raw) * 0.2f;
+    lateralAccelerationMps2 = static_cast<float>(raw) * 0.2f;
     return true;
 }
 

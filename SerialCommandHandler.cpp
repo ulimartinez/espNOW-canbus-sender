@@ -111,10 +111,11 @@ void SerialCommandHandler::printStatusLine(SystemContext &ctx, uint32_t nowMs) c
 
     Serial.printf(
         "[STATUS] mode=%s oil_psi=%.1f oil_valid=%d rpm=%u rpm_valid=%d oil_temp_c=%.1f oil_temp_valid=%d "
-        "engine_running=%d sensor_error=%d espnow_tx_ok=%lu espnow_tx_fail=%lu espnow_consec_fail=%u heap=%u "
+        "coolant_c=%.1f coolant_valid=%d lat_mps2=%.1f lat_valid=%d engine_running=%d sensor_error=%d espnow_tx_ok=%lu espnow_tx_fail=%lu espnow_consec_fail=%u heap=%u "
         "uptime_ms=%lu\n",
         WIRELESS_BENCH_TEST_MODE ? "BENCH_TEST" : "VEHICLE_CAN", d.oilPressurePsi, d.oilPressureValid, d.rpm,
-        d.rpmValid, d.oilTemperatureC, d.oilTemperatureValid, d.engineRunning, d.sensorError,
+        d.rpmValid, d.oilTemperatureC, d.oilTemperatureValid, d.coolantTemperatureC, d.coolantTemperatureValid,
+        d.lateralAccelerationMps2, d.lateralAccelerationValid, d.engineRunning, d.sensorError,
         (unsigned long)tx.succeeded, (unsigned long)tx.failed, tx.consecutiveFailures,
         (unsigned)ESP.getFreeHeap(), (unsigned long)nowMs);
 

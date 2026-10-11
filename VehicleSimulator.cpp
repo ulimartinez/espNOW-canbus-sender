@@ -281,5 +281,25 @@ void VehicleSimulator::computeStageData(Stage stage, uint32_t elapsedMs, uint32_
             break;
     }
 
+    // Protocol v2 fields, derived from the stage's own values so every
+    // stage stays consistent without repeating them above. Coolant leads
+    // oil temperature during warm-up (as on the real car) and settles at
+    // thermostat temperature; lateral acceleration swings both directions
+    // only during the driving stages.
+    d.coolantTemperatureValid = d.oilTemperatureValid;
+    if (d.oilTemperatureValid) {
+        float oilF = celsiusToFahrenheit(d.oilTemperatureC);
+        float coolantF = oilF;
+        if (d.engineRunning) coolantF = fminf(oilF + 30.0f, 195.0f);
+        if (oilF >= 195.0f) coolantF = 195.0f + wobble(nowMs, 2.0f);
+        d.coolantTemperatureC = fahrenheitToCelsius(coolantF);
+    }
+
+    bool driving = (stage == Stage::Acceleration || stage == Stage::HighRpmNormal ||
+                    stage == Stage::CautionPressureEvent || stage == Stage::CriticalLowPressureEvent ||
+                    stage == Stage::Recovery);
+    d.lateralAccelerationValid = d.rpmValid;
+    d.lateralAccelerationMps2 = driving ? 12.0f * sinf(static_cast<float>(nowMs) / 900.0f) : wobble(nowMs, 0.2f);
+
     data_ = d;
 }
